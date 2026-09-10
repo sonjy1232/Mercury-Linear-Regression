@@ -1,13 +1,26 @@
 char cmd;
 float vout = 0.0000;
-float vin = 0.0000;       // = 대입 연산자 추가
-float R1 = 28998.0;      // 전압 분배 저항 1
-float R2 = 7531.0;       // 전압 분배 저항 2
+float vin = 0.0000;
+float R1 = 28998.0;     // 전압 분배 저항 1
+float R2 = 7531.0;      // 전압 분배 저항 2
 int value = 0;
 float sum = 0.0;
 
+// 오름차순 정렬 함수 (버블 정렬)
+void sortArray(float arr[], int size) {
+  for (int i = 0; i < size - 1; i++) {
+    for (int j = 0; j < size - i - 1; j++) {
+      if (arr[j] > arr[j + 1]) {
+        float temp = arr[j];
+        arr[j] = arr[j + 1];
+        arr[j + 1] = temp;
+      }
+    }
+  }
+}
+
 void setup() {
-  Serial.begin(9600);    // s 소문자를 대문자 Serial로 수정
+  Serial.begin(9600);
   pinMode(A0, INPUT);
 }
 
@@ -16,23 +29,30 @@ void loop() {
     cmd = Serial.read();
 
     if (cmd == 'a') {
-      sum = 0.0; // 측정 전 누적값 초기화
-      
-      // 100회 동안 전압 데이터 수집 및 누적
+      float readings[100]; // 100개의 측정값을 저장할 배열
+      sum = 0.0;
+
+      // 100회 동안 전압 데이터 수집
       for (int i = 0; i < 100; i++) {
         value = analogRead(A0);
         vout = (value * 5.0) / 1024.0;
+        vin = vout * (R1 + R2) / R2;
         
-        // 전압 분배 수식을 이용하여 실제 입력 전압 vin 계산
-        vin = vout * (R1 + R2) / R2; 
-        
-        sum += vin;
+        readings[i] = vin;
         delay(2);
       }
-      
-      // 100회 측정한 전압의 평균값 계산 후 파이썬으로 전송 (소수점 4자리)
-      float avg_vin = sum / 100.0;
-      Serial.println(avg_vin, 4); // println (소문자 l) 사용
+
+      // 100개의 데이터 오름차순 정렬
+      sortArray(readings, 100);
+
+      // 최저값 5개(인덱스 0~4)와 최고값 5개(인덱스 95~99)를 제외한 90개 누적
+      for (int i = 5; i < 95; i++) {
+        sum += readings[i];
+      }
+
+      // 90개 데이터의 평균 계산 후 출력 (소수점 4자리)
+      float avg_vin = sum / 90.0;
+      Serial.println(avg_vin, 4);
     }
   }
 }
